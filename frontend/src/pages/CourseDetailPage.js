@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { CourseService, UserService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { getVideoUrl } from '../config/api';
 import {
   PlayIcon,
   StarIcon,
@@ -15,6 +16,7 @@ import {
   GlobeAltIcon,
   AcademicCapIcon,
   TrophyIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
@@ -28,15 +30,21 @@ const CourseDetailPage = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
 
   const { data: course, isLoading, error } = useQuery(
     ['course', id],
-    () => CourseService.getCourse(id),
+    async () => {
+      const response = await CourseService.getCourse(id);
+      console.log('Course Detail - API Response:', response.data);
+      return response.data;
+    },
     { 
       enabled: !!id,
       onSuccess: (data) => {
         // Check if course is in user's wishlist
-        if (user?.wishlist?.includes(data.course._id)) {
+        if (user?.wishlist?.includes(data._id)) {
           setIsWishlisted(true);
         }
       }
@@ -99,8 +107,8 @@ const CourseDetailPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: course?.course?.title,
-          text: course?.course?.description,
+          title: course?.title,
+          text: course?.description,
           url: window.location.href,
         });
       } catch (error) {
@@ -121,7 +129,7 @@ const CourseDetailPage = () => {
     );
   }
 
-  if (error || !course?.course) {
+  if (error || !course) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -139,7 +147,7 @@ const CourseDetailPage = () => {
     );
   }
 
-  const courseData = course.course;
+  const courseData = course;
   const isEnrolled = courseData.isEnrolled;
   const canAccess = isEnrolled || courseData.price === 0;
 
@@ -398,13 +406,30 @@ const CourseDetailPage = () => {
                             {section.lessons?.map((lesson, lessonIndex) => (
                               <div
                                 key={lesson._id}
-                                className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg"
+                                className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg cursor-pointer hover:bg-secondary-100"
+                                onClick={() => {
+                                  if (lesson.videoUrl || lesson.content) {
+                                    const videoPath = lesson.videoUrl || lesson.content;
+                                    const fullUrl = getVideoUrl(videoPath);
+                                    setSelectedVideo({
+                                      url: fullUrl,
+                                      title: lesson.title,
+                                      description: lesson.description
+                                    });
+                                    setShowVideoPlayer(true);
+                                  }
+                                }}
                               >
                                 <div className="flex items-center">
                                   <PlayIcon className="w-4 h-4 text-secondary-600 mr-3" />
                                   <span className="text-sm font-medium">
                                     {lessonIndex + 1}. {lesson.title}
                                   </span>
+                                  {(lesson.videoUrl || lesson.content) && (
+                                    <span className="ml-2 text-xs bg-primary-100 text-primary-600 px-2 py-1 rounded">
+                                      Video Available
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="text-xs text-secondary-500">
@@ -552,6 +577,46 @@ const CourseDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Video Player Modal */}
+      {showVideoPlayer && selectedVideo && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-secondary-900">
+                {selectedVideo.title}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowVideoPlayer(false);
+                  setSelectedVideo(null);
+                }}
+                className="text-secondary-500 hover:text-secondary-700"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="aspect-video bg-black rounded-lg mb-4">
+              <video
+                controls
+                autoPlay
+                className="w-full h-full rounded-lg"
+                src={selectedVideo.url}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            
+            {selectedVideo.description && (
+              <div className="text-secondary-600">
+                <h4 className="font-medium mb-2">Description:</h4>
+                <p>{selectedVideo.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

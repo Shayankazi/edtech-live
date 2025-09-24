@@ -13,12 +13,28 @@ const progressRoutes = require('./routes/progress');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Security middleware with custom CSP for video playback
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      mediaSrc: ["'self'", "data:", "blob:"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", "https:", "data:"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://your-domain.com'] 
-    : ['http://localhost:3000'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
   credentials: true
 }));
 
@@ -36,9 +52,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Static files
 app.use('/uploads', express.static('uploads'));
+app.use('/videos', express.static('../videos'));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/virtual_learning_platform', {
+mongoose.connect('mongodb://localhost:27017/virtual_learning_platform', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })

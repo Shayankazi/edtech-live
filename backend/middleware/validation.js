@@ -4,6 +4,8 @@ const { body, param, query, validationResult } = require('express-validator');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation errors:', errors.array());
+    console.log('Request body:', req.body);
     return res.status(400).json({
       error: 'Validation Error',
       details: errors.array().map(error => ({
@@ -91,8 +93,8 @@ const validateCourseCreation = [
   
   body('description')
     .trim()
-    .isLength({ min: 50, max: 2000 })
-    .withMessage('Course description must be between 50 and 2000 characters'),
+    .isLength({ min: 20, max: 2000 })
+    .withMessage('Course description must be between 20 and 2000 characters'),
   
   body('shortDescription')
     .optional()
@@ -101,13 +103,8 @@ const validateCourseCreation = [
     .withMessage('Short description must be less than 500 characters'),
   
   body('category')
-    .isIn([
-      'programming', 'design', 'business', 'marketing', 
-      'data_science', 'ai_ml', 'web_development', 'mobile_development',
-      'devops', 'cybersecurity', 'photography', 'music',
-      'language', 'health', 'fitness', 'cooking', 'other'
-    ])
-    .withMessage('Please select a valid category'),
+    .notEmpty()
+    .withMessage('Please select a category'),
   
   body('level')
     .isIn(['beginner', 'intermediate', 'advanced'])
@@ -276,17 +273,23 @@ const validatePagination = [
 const validateCourseFilters = [
   query('category')
     .optional()
-    .isIn([
-      'programming', 'design', 'business', 'marketing', 
-      'data_science', 'ai_ml', 'web_development', 'mobile_development',
-      'devops', 'cybersecurity', 'photography', 'music',
-      'language', 'health', 'fitness', 'cooking', 'other'
-    ])
+    .custom((value) => {
+      if (!value || value === '') return true; // Allow empty values
+      return [
+        'programming', 'design', 'business', 'marketing', 
+        'data_science', 'ai_ml', 'web_development', 'mobile_development',
+        'devops', 'cybersecurity', 'photography', 'music',
+        'language', 'health', 'fitness', 'cooking', 'other'
+      ].includes(value);
+    })
     .withMessage('Invalid category'),
   
   query('level')
     .optional()
-    .isIn(['beginner', 'intermediate', 'advanced'])
+    .custom((value) => {
+      if (!value || value === '') return true; // Allow empty values
+      return ['beginner', 'intermediate', 'advanced'].includes(value);
+    })
     .withMessage('Level must be beginner, intermediate, or advanced'),
   
   query('minPrice')

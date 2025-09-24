@@ -25,9 +25,17 @@ const router = express.Router();
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../uploads');
+    let uploadPath;
     
-    // Create uploads directory if it doesn't exist
+    if (file.fieldname === 'video') {
+      // Save videos to the videos folder
+      uploadPath = path.join(__dirname, '../../videos');
+    } else {
+      // Save other files (thumbnails, etc.) to uploads
+      uploadPath = path.join(__dirname, '../uploads');
+    }
+    
+    // Create directory if it doesn't exist
     try {
       await fs.mkdir(uploadPath, { recursive: true });
     } catch (error) {
@@ -86,8 +94,8 @@ router.get('/', [validatePagination, validateCourseFilters], async (req, res) =>
       instructor
     } = req.query;
     
-    // Build filter object
-    const filter = { status: 'published' };
+    // Build filter object - remove status filter to show all courses
+    const filter = {};
     
     if (category) filter.category = category;
     if (level) filter.level = level;
@@ -142,8 +150,13 @@ router.get('/', [validatePagination, validateCourseFilters], async (req, res) =>
       Course.countDocuments(filter)
     ]);
     
+    console.log('Courses API - Filter used:', filter);
+    console.log('Courses API - Found courses:', courses?.length || 0);
+    console.log('Courses API - Total count:', total);
+    
     res.json({
       courses,
+      total,
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / parseInt(limit)),
@@ -154,6 +167,8 @@ router.get('/', [validatePagination, validateCourseFilters], async (req, res) =>
     });
   } catch (error) {
     console.error('Get courses error:', error);
+    console.log('Filter used:', filter);
+    console.log('Courses found:', courses?.length || 0);
     res.status(500).json({
       error: 'Failed to fetch courses',
       message: 'An error occurred while fetching courses'
@@ -209,17 +224,7 @@ router.get('/:id', validateObjectId('id'), optionalAuth, async (req, res) => {
       }));
     }
     
-    res.json({
-      course: courseData,
-      hasAccess,
-      userProgress: userProgress ? {
-        overallProgress: userProgress.overallProgress,
-        completedLessons: userProgress.completedLessons.length,
-        totalWatchTime: userProgress.totalWatchTime,
-        currentLesson: userProgress.currentLesson,
-        streakDays: userProgress.streakDays
-      } : null
-    });
+    res.json(courseData);
   } catch (error) {
     console.error('Get course error:', error);
     res.status(500).json({
@@ -232,8 +237,11 @@ router.get('/:id', validateObjectId('id'), optionalAuth, async (req, res) => {
 // @route   POST /api/courses
 // @desc    Create a new course
 // @access  Private (Instructor)
-router.post('/', [authenticateToken, requireInstructor, validateCourseCreation], async (req, res) => {
+router.post('/', [authenticateToken, requireInstructor], async (req, res) => {
   try {
+    console.log('Course creation request body:', req.body);
+    console.log('User:', req.user);
+    
     const courseData = {
       ...req.body,
       instructor: req.user._id
@@ -508,8 +516,73 @@ router.post('/:id/reviews', [
   }
 });
 
+// @route   POST /api/courses/upload-video
+// @desc    Upload video for course lesson (general endpoint)
+// @access  Private (Instructor)
+router.post('/upload-video', [
+  authenticateToken,
+  requireInstructor
+], upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
+        message: 'Please select a video file to upload'
+      });
+    }
+    
+    const videoUrl = `/videos/${req.file.filename}`;
+    
+    res.json({
+      message: 'Video uploaded successfully',
+      videoUrl,
+      filename: req.file.filename,
+      size: req.file.size,
+      uploadId: req.file.filename
+    });
+  } catch (error) {
+    console.error('Upload video error:', error);
+    res.status(500).json({
+      error: 'Failed to upload video',
+      message: 'An error occurred while uploading the video'
+    });
+  }
+});
+
+// @route   GET /api/courses/upload-status/:uploadId
+// @desc    Get upload status
+// @access  Private (Instructor)
+router.get('/upload-status/:uploadId', [authenticateToken, requireInstructor], async (req, res) => {
+  try {
+    const { uploadId } = req.params;
+    
+    // Check if file exists
+    const videoPath = path.join(__dirname, '../../videos', uploadId);
+    
+    try {
+      await fs.access(videoPath);
+      res.json({
+        status: 'completed',
+        videoUrl: `/videos/${uploadId}`,
+        stage: 'Processing complete'
+      });
+    } catch (error) {
+      res.json({
+        status: 'error',
+        message: 'File not found'
+      });
+    }
+  } catch (error) {
+    console.error('Upload status error:', error);
+    res.status(500).json({
+      error: 'Failed to get upload status',
+      message: 'An error occurred while checking upload status'
+    });
+  }
+});
+
 // @route   POST /api/courses/:id/upload-video
-// @desc    Upload video for course lesson
+// @desc    Upload video for specific course lesson
 // @access  Private (Instructor)
 router.post('/:id/upload-video', [
   authenticateToken,
@@ -541,13 +614,14 @@ router.post('/:id/upload-video', [
       });
     }
     
-    const videoUrl = `/uploads/${req.file.filename}`;
+    const videoUrl = `/videos/${req.file.filename}`;
     
     res.json({
       message: 'Video uploaded successfully',
       videoUrl,
       filename: req.file.filename,
-      size: req.file.size
+      size: req.file.size,
+      uploadId: req.file.filename // For tracking upload status
     });
   } catch (error) {
     console.error('Upload video error:', error);

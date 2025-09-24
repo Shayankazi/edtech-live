@@ -12,11 +12,13 @@ const lessonSchema = new mongoose.Schema({
   },
   videoUrl: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   duration: {
     type: Number, // in seconds
-    required: true
+    required: false,
+    default: 0
   },
   order: {
     type: Number,
@@ -170,7 +172,7 @@ const courseSchema = new mongoose.Schema({
   },
   thumbnail: {
     type: String,
-    required: true
+    required: false
   },
   previewVideo: {
     type: String

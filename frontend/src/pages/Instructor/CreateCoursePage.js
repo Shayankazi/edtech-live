@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import LoadingSpinner from '../../components/UI/LoadingSpinner';
+import VideoUpload from '../../components/Course/VideoUpload';
 import toast from 'react-hot-toast';
 
 const CreateCoursePage = () => {
@@ -45,13 +46,16 @@ const CreateCoursePage = () => {
         {
           title: '',
           description: '',
+          order: 1,
           lessons: [
             {
               title: '',
               description: '',
               type: 'video',
               content: '',
+              videoUrl: '',
               duration: 0,
+              order: 1,
             },
           ],
         },
@@ -69,7 +73,7 @@ const CreateCoursePage = () => {
     {
       onSuccess: (response) => {
         toast.success('Course created successfully!');
-        navigate(`/instructor/courses/${response.course._id}/edit`);
+        navigate('/courses');
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to create course');
@@ -80,24 +84,34 @@ const CreateCoursePage = () => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
+      // Process sections to ensure proper structure
+      const processedSections = (data.sections || []).map((section, sectionIndex) => ({
+        ...section,
+        order: sectionIndex + 1,
+        lessons: (section.lessons || []).map((lesson, lessonIndex) => ({
+          ...lesson,
+          order: lessonIndex + 1,
+          videoUrl: lesson.content || lesson.videoUrl || '',
+          duration: parseInt(lesson.duration) || 0
+        }))
+      }));
+
+      const courseData = {
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        level: data.level,
+        price: data.price || 0,
+        sections: processedSections
+      };
       
-      // Add basic course info
-      formData.append('title', data.title);
-      formData.append('description', data.description);
-      formData.append('category', data.category);
-      formData.append('level', data.level);
-      formData.append('price', data.price);
-      
-      // Add thumbnail if exists
+      // Add thumbnail URL if exists
       if (data.thumbnail) {
-        formData.append('thumbnail', data.thumbnail);
+        courseData.thumbnail = data.thumbnail;
       }
       
-      // Add sections and lessons
-      formData.append('sections', JSON.stringify(data.sections));
-      
-      createCourseMutation.mutate(formData);
+      console.log('Submitting course data:', courseData);
+      createCourseMutation.mutate(courseData);
     } catch (error) {
       toast.error('Failed to create course');
     } finally {
@@ -149,16 +163,20 @@ const CreateCoursePage = () => {
   };
 
   const addSection = () => {
+    const currentSections = watch('sections') || [];
     appendSection({
       title: '',
       description: '',
+      order: currentSections.length + 1,
       lessons: [
         {
           title: '',
           description: '',
           type: 'video',
           content: '',
+          videoUrl: '',
           duration: 0,
+          order: 1,
         },
       ],
     });
@@ -167,12 +185,15 @@ const CreateCoursePage = () => {
   const addLesson = (sectionIndex) => {
     const currentSections = watch('sections');
     const updatedSections = [...currentSections];
+    const currentLessons = updatedSections[sectionIndex].lessons || [];
     updatedSections[sectionIndex].lessons.push({
       title: '',
       description: '',
       type: 'video',
       content: '',
+      videoUrl: '',
       duration: 0,
+      order: currentLessons.length + 1,
     });
     setValue('sections', updatedSections);
   };
@@ -578,7 +599,7 @@ const CreateCoursePage = () => {
                                   />
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="mb-3">
                                   <div>
                                     <label className="block text-xs font-medium text-gray-600 mb-1">
                                       Duration (minutes)
@@ -591,18 +612,27 @@ const CreateCoursePage = () => {
                                       {...register(`sections.${sectionIndex}.lessons.${lessonIndex}.duration`)}
                                     />
                                   </div>
-                                  <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                                      Content URL
+                                </div>
+                                
+                                {/* Video Upload Section */}
+                                {watch(`sections.${sectionIndex}.lessons.${lessonIndex}.type`) === 'video' && (
+                                  <div className="mt-4">
+                                    <label className="block text-xs font-medium text-gray-600 mb-2">
+                                      Upload Video
                                     </label>
-                                    <input
-                                      type="url"
-                                      className="input input-sm"
-                                      placeholder="Video/content URL"
-                                      {...register(`sections.${sectionIndex}.lessons.${lessonIndex}.content`)}
+                                    <VideoUpload
+                                      onUploadComplete={(response) => {
+                                        setValue(`sections.${sectionIndex}.lessons.${lessonIndex}.content`, response.videoUrl);
+                                        setValue(`sections.${sectionIndex}.lessons.${lessonIndex}.videoUrl`, response.videoUrl);
+                                        toast.success('Video uploaded successfully!');
+                                      }}
+                                      onUploadStart={(file) => {
+                                        toast('Uploading video...');
+                                      }}
+                                      lessonId={`${sectionIndex}-${lessonIndex}`}
                                     />
                                   </div>
-                                </div>
+                                )}
                               </div>
                             ))}
                           </div>

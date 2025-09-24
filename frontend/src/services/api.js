@@ -86,9 +86,7 @@ export const CourseService = {
   getCourses: (params) => api.get('/courses', { params }),
   getCourse: (id) => api.get(`/courses/${id}`),
   enrollInCourse: (id) => api.post(`/courses/${id}/enroll`),
-  createCourse: (data) => api.post('/courses', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  createCourse: (data) => api.post('/courses', data),
   updateCourse: (id, data) => api.put(`/courses/${id}`, data),
   deleteCourse: (id) => api.delete(`/courses/${id}`),
   uploadVideo: (data, config) => api.post('/courses/upload-video', data, {

@@ -27,11 +27,15 @@ const CoursesPage = () => {
 
   const { data: coursesData, isLoading, error } = useQuery(
     ['courses', filters],
-    () => CourseService.getCourses({
-      ...filters,
-      page: 1,
-      limit: 12,
-    }),
+    async () => {
+      const response = await CourseService.getCourses({
+        ...filters,
+        page: 1,
+        limit: 12,
+      });
+      console.log('Frontend - API Response:', response.data);
+      return response.data;
+    },
     { 
       keepPreviousData: true,
       staleTime: 5 * 60 * 1000 
@@ -259,7 +263,7 @@ const CoursesPage = () => {
               Retry
             </button>
           </div>
-        ) : coursesData?.courses?.length === 0 ? (
+        ) : !coursesData?.courses || coursesData?.courses?.length === 0 ? (
           <div className="text-center py-12">
             <AdjustmentsHorizontalIcon className="w-16 h-16 text-secondary-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-secondary-900 mb-2">
@@ -277,7 +281,7 @@ const CoursesPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {coursesData.courses.map((course, index) => (
+            {coursesData?.courses?.map((course, index) => (
               <motion.div
                 key={course._id}
                 initial={{ opacity: 0, y: 20 }}
@@ -304,8 +308,12 @@ const CoursesPage = () => {
                       {course.title}
                     </h3>
                     
-                    <p className="text-sm text-secondary-600 mb-3">
-                      {course.instructor?.name}
+                    <p className="text-sm text-secondary-600 mb-2 line-clamp-3">
+                      {course.description}
+                    </p>
+                    
+                    <p className="text-xs text-secondary-500 mb-3">
+                      By {course.instructor?.name}
                     </p>
                     
                     <div className="flex items-center justify-between mb-3">
@@ -323,6 +331,18 @@ const CoursesPage = () => {
                         {course.totalDuration || 0}m
                       </div>
                     </div>
+                    
+                    {/* Video Count */}
+                    {course.sections?.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center text-xs text-secondary-500">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          {course.sections.reduce((total, section) => total + (section.lessons?.length || 0), 0)} videos
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-primary-600">
