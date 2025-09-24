@@ -1,6 +1,64 @@
 # Virtual Learning Platform (VLP)
 
-A self-paced virtual learning platform similar to Udemy/Coursera with AI-powered features.
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com/)
+
+A comprehensive self-paced virtual learning platform similar to Udemy/Coursera, enhanced with cutting-edge AI-powered features for an immersive educational experience. Built with modern web technologies and integrated with advanced AI services for automated content generation, smart translations, and intelligent learning analytics.
+
+## 👥 Team
+
+This project was developed by a talented team of developers:
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/shayankazi">
+        <img src="https://github.com/shayankazi.png" width="100px;" alt="Shayan Kazi"/>
+        <br />
+        <sub><b>Shayan Kazi</b></sub>
+      </a>
+      <br />
+      <a href="https://github.com/shayankazi" title="GitHub Profile">🔗 GitHub</a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/vanshtalyani">
+        <img src="https://github.com/vanshtalyani.png" width="100px;" alt="Vansh Talyani"/>
+        <br />
+        <sub><b>Vansh Talyani</b></sub>
+      </a>
+      <br />
+      <a href="https://github.com/vanshtalyani" title="GitHub Profile">🔗 GitHub</a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/tanishqchoudhary">
+        <img src="https://github.com/tanishqchoudhary.png" width="100px;" alt="Tanishq Choudhary"/>
+        <br />
+        <sub><b>Tanishq Choudhary</b></sub>
+      </a>
+      <br />
+      <a href="https://github.com/tanishqchoudhary" title="GitHub Profile">🔗 GitHub</a>
+    </td>
+  </tr>
+</table>
+
+## 📋 Table of Contents
+
+- [👥 Team](#-team)
+- [🚀 Features](#-features)
+- [🏗️ Architecture](#️-architecture)
+- [📁 Project Structure](#-project-structure)
+- [🔧 Setup Instructions](#-setup-instructions)
+- [🔑 Environment Variables](#-environment-variables)
+- [📊 API Endpoints](#-api-endpoints)
+- [🤖 AI Integration](#-ai-integration)
+- [🚀 Deployment](#-deployment)
+- [📈 Future Enhancements](#-future-enhancements)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ## 🚀 Features
 
@@ -137,3 +195,42 @@ OPENAI_API_KEY=your_openai_api_key
 - Peer-to-peer learning features
 - Blockchain certificates
 - AR/VR learning modules
+
+## 🤝 Contributing
+
+We welcome contributions to the Virtual Learning Platform! Here's how you can help:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/AmazingFeature`)
+3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`)
+4. **Push to the branch** (`git push origin feature/AmazingFeature`)
+5. **Open a Pull Request**
+
+### Development Guidelines
+- Follow the existing code style and conventions
+- Write clear, descriptive commit messages
+- Add tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting
+
+### Issues and Bug Reports
+If you find a bug or have a feature request, please open an issue on GitHub with:
+- Clear description of the problem or feature
+- Steps to reproduce (for bugs)
+- Expected vs actual behavior
+- Screenshots or code examples if applicable
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by the VLP Team</p>
+  <p>
+    <a href="https://github.com/shayankazi">Shayan Kazi</a> • 
+    <a href="https://github.com/vanshtalyani">Vansh Talyani</a> • 
+    <a href="https://github.com/tanishqchoudhary">Tanishq Choudhary</a>
+  </p>
+</div>
