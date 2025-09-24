@@ -10,6 +10,9 @@ const courseRoutes = require('./routes/courses');
 const userRoutes = require('./routes/users');
 const aiRoutes = require('./routes/ai');
 const progressRoutes = require('./routes/progress');
+const captionRoutes = require('./routes/captions');
+const noteRoutes = require('./routes/notes');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -68,6 +71,10 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/captions', captionRoutes);
+app.use('/api/notes', noteRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reports', require('./routes/reports'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

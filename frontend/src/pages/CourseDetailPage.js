@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { CourseService, UserService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { getVideoUrl } from '../config/api';
+import { getVideoUrl, API_CONFIG } from '../config/api';
+import VideoPlayer from '../components/Video/VideoPlayer';
+import NoteTaking from '../components/Notes/NoteTaking';
 import {
   PlayIcon,
   StarIcon,
@@ -32,6 +34,64 @@ const CourseDetailPage = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [captions, setCaptions] = useState(null);
+  const [showCaptions, setShowCaptions] = useState(false);
+  const [currentVideoTime, setCurrentVideoTime] = useState(0);
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+
+  // Fetch captions when video is selected
+  useEffect(() => {
+    const fetchCaptions = async () => {
+      if (selectedVideo && selectedVideo.videoId) {
+        try {
+          const response = await fetch(
+            `${API_CONFIG.API_URL}/captions/${selectedVideo.videoId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          if (response.ok) {
+            const captionData = await response.json();
+            setCaptions(captionData.captions);
+          }
+        } catch (error) {
+          console.error('Failed to fetch captions:', error);
+        }
+      }
+    };
+
+    fetchCaptions();
+  }, [selectedVideo]);
+
+  // Track video analytics
+  const trackVideoInteraction = async (action, data = {}) => {
+    if (!selectedVideo || !user) return;
+    
+    try {
+      await fetch(`${API_CONFIG.API_URL}/analytics/track`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          courseId: id,
+          lessonId: selectedLessonId,
+          action,
+          data: {
+            videoUrl: selectedVideo.url,
+            timestamp: currentVideoTime,
+            ...data
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track video interaction:', error);
+    }
+  };
 
   const { data: course, isLoading, error } = useQuery(
     ['course', id],
@@ -414,9 +474,13 @@ const CourseDetailPage = () => {
                                     setSelectedVideo({
                                       url: fullUrl,
                                       title: lesson.title,
-                                      description: lesson.description
+                                      description: lesson.description,
+                                      videoId: lesson._id || lesson.id
                                     });
+                                    setSelectedLessonId(lesson._id || lesson.id);
                                     setShowVideoPlayer(true);
+                                    setCurrentVideoTime(0);
+                                    setCaptions(null);
                                   }
                                 }}
                               >
@@ -578,42 +642,67 @@ const CourseDetailPage = () => {
         </div>
       </div>
 
-      {/* Video Player Modal */}
+      {/* Enhanced Video Player Modal */}
       {showVideoPlayer && selectedVideo && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-secondary-900">
-                {selectedVideo.title}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowVideoPlayer(false);
-                  setSelectedVideo(null);
-                }}
-                className="text-secondary-500 hover:text-secondary-700"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="aspect-video bg-black rounded-lg mb-4">
-              <video
-                controls
-                autoPlay
-                className="w-full h-full rounded-lg"
-                src={selectedVideo.url}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
-            
-            {selectedVideo.description && (
-              <div className="text-secondary-600">
-                <h4 className="font-medium mb-2">Description:</h4>
-                <p>{selectedVideo.description}</p>
+          <div className="bg-white rounded-lg max-w-7xl w-full mx-4 max-h-[95vh] overflow-hidden flex">
+            {/* Video Player Section */}
+            <div className="flex-1 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">{selectedVideo.title}</h3>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowCaptions(!showCaptions)}
+                    className={`px-3 py-1 rounded text-sm ${
+                      showCaptions 
+                        ? 'bg-primary-600 text-white' 
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    CC
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowVideoPlayer(false);
+                      trackVideoInteraction('video_closed');
+                    }}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            )}
+              
+              <VideoPlayer
+                src={selectedVideo.url}
+                captions={captions}
+                showCaptions={showCaptions}
+                onTimeUpdate={(time) => {
+                  setCurrentVideoTime(time);
+                }}
+                onPlay={() => trackVideoInteraction('video_play')}
+                onPause={() => trackVideoInteraction('video_pause')}
+                onSeek={(time) => trackVideoInteraction('video_seek', { seekTo: time })}
+                onVolumeChange={(volume) => trackVideoInteraction('volume_change', { volume })}
+                onFullscreen={(isFullscreen) => trackVideoInteraction('fullscreen_toggle', { isFullscreen })}
+              />
+              
+              {selectedVideo.description && (
+                <p className="mt-4 text-gray-600">{selectedVideo.description}</p>
+              )}
+            </div>
+            
+            {/* Notes Section */}
+            <div className="w-96 border-l border-gray-200 bg-gray-50">
+              <NoteTaking
+                courseId={id}
+                lessonId={selectedLessonId}
+                videoTime={currentVideoTime}
+                onNoteCreated={() => trackVideoInteraction('note_created')}
+              />
+            </div>
           </div>
         </div>
       )}
